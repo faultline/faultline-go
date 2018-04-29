@@ -2,6 +2,10 @@
 
 > [faultline](https://github.com/faultline/faultline) exception and error notifier for Go.
 
+## Requirement
+
+- [faultline](https://github.com/faultline/faultline) >= 1.3.0
+
 ## Usage
 
 ``` go
