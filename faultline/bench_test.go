@@ -12,12 +12,12 @@ import (
 func BenchmarkSendNotice(b *testing.B) {
 	handler := func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`{"id":"123"}`))
+		w.Write([]byte(`{"data":{"errors":{"postCount":27}}}`))
 	}
 	server := httptest.NewServer(http.HandlerFunc(handler))
 
-	notifier := faultline.NewNotifier(1, "key")
-	notifier.SetHost(server.URL)
+	notifier := faultline.NewNotifier("sample-project", "123", server.URL, []interface{}{})
+	notifier.SetEndpoint(server.URL)
 
 	notice := notifier.Notice(errors.New("benchmark"), nil, 0)
 
@@ -25,12 +25,12 @@ func BenchmarkSendNotice(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			id, err := notifier.SendNotice(notice)
+			count, err := notifier.SendNotice(notice)
 			if err != nil {
 				b.Fatal(err)
 			}
-			if id != "123" {
-				b.Fatalf("got %q, wanted 123", id)
+			if count != 27 {
+				b.Fatalf("got %q, wanted 27", count)
 			}
 		}
 	})

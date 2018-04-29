@@ -16,12 +16,12 @@ var _ = Describe("Notifier", func() {
 	BeforeEach(func() {
 		handler := func(w http.ResponseWriter, req *http.Request) {
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(`{"id":"123"}`))
+			w.Write([]byte(`{"data":{"errors":{"postCount":27}}}`))
 		}
 		server := httptest.NewServer(http.HandlerFunc(handler))
 
-		notifier = faultline.NewNotifier(1, "key")
-		notifier.SetHost(server.URL)
+		notifier = faultline.NewNotifier("sample-project", "123", "https://api.example.com/v0", []interface{}{})
+		notifier.SetEndpoint(server.URL)
 	})
 
 	It("is race free", func() {

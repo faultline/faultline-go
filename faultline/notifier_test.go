@@ -47,12 +47,12 @@ var _ = Describe("Notifier", func() {
 			Expect(err).To(BeNil())
 
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(`{"id":"123"}`))
+			w.Write([]byte(`{"data":{"errors":{"postCount":27}}}`))
 		}
 		server := httptest.NewServer(http.HandlerFunc(handler))
 
-		notifier = faultline.NewNotifier(1, "key")
-		notifier.SetHost(server.URL)
+		notifier = faultline.NewNotifier("sample-project", "123", "https://api.example.com/v0", []interface{}{})
+		notifier.SetEndpoint(server.URL)
 	})
 
 	AfterEach(func() {
@@ -101,15 +101,15 @@ var _ = Describe("Notifier", func() {
 		wanted.Session["session1"] = "value1"
 		wanted.Params["param1"] = "value1"
 
-		id, err := notifier.SendNotice(wanted)
+		count, err := notifier.SendNotice(wanted)
 		Expect(err).To(BeNil())
-		Expect(id).To(Equal("123"))
+		Expect(count).To(Equal(27))
 
 		Expect(sentNotice).To(Equal(wanted))
 	})
 
-	It("passes token by header 'Authorization: Bearer {project key}'", func() {
-		Expect(sendNoticeReq.Header.Get("Authorization")).To(Equal("Bearer key"))
+	It("passes token by header 'X-Api-Key: {apiKey}'", func() {
+		Expect(sendNoticeReq.Header.Get("X-Api-Key")).To(Equal("123"))
 	})
 
 	It("reports context using SetContext", func() {
@@ -199,8 +199,8 @@ var _ = Describe("rate limiting", func() {
 		}
 		server := httptest.NewServer(http.HandlerFunc(handler))
 
-		notifier = faultline.NewNotifier(1, "key")
-		notifier.SetHost(server.URL)
+		notifier = faultline.NewNotifier("sample-project", "123", "https://api.example.com/v0", []interface{}{})
+		notifier.SetEndpoint(server.URL)
 	})
 
 	AfterEach(func() {

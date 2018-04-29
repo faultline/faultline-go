@@ -56,14 +56,14 @@ type StackFrame struct {
 }
 
 type Notice struct {
-	Id    string `json:"-"` // id returned by SendNotice
-	Error error  `json:"-"` // error returned by SendNotice
+	Error error `json:"-"` // error returned by SendNotice
 
-	Errors  []Error                `json:"errors"`
-	Context map[string]interface{} `json:"context"`
-	Env     map[string]interface{} `json:"environment"`
-	Session map[string]interface{} `json:"session"`
-	Params  map[string]interface{} `json:"params"`
+	Errors        []Error                `json:"errors"`
+	Context       map[string]interface{} `json:"context"`
+	Env           map[string]interface{} `json:"environment"`
+	Session       map[string]interface{} `json:"session"`
+	Params        map[string]interface{} `json:"params"`
+	Notifications []interface{}          `json:"notifications"`
 }
 
 func (n *Notice) String() string {
@@ -133,10 +133,11 @@ func NewNotice(e interface{}, req *http.Request, depth int) *Notice {
 			Message:   fmt.Sprint(e),
 			Backtrace: backtrace,
 		}},
-		Context: make(map[string]interface{}),
-		Env:     make(map[string]interface{}),
-		Session: make(map[string]interface{}),
-		Params:  make(map[string]interface{}),
+		Context:       make(map[string]interface{}),
+		Env:           make(map[string]interface{}),
+		Session:       make(map[string]interface{}),
+		Params:        make(map[string]interface{}),
+		Notifications: []interface{}{},
 	}
 
 	for k, v := range getDefaultContext() {

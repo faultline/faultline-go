@@ -20,7 +20,6 @@ import (
 	"time"
 )
 
-const defaultAirbrakeHost = "https://api.airbrake.io"
 const waitTimeout = 5 * time.Second
 
 const httpEnhanceYourCalm = 420
@@ -63,8 +62,11 @@ type Notifier struct {
 	// http.Client that is used to interact with Airbrake API.
 	Client *http.Client
 
-	projectId       int64
-	projectKey      string
+	project       string
+	apiKey        string
+	endpoint      string
+	notifications []interface{}
+
 	createNoticeURL string
 
 	filters []filter
@@ -78,13 +80,16 @@ type Notifier struct {
 	_closed uint32 // atomic
 }
 
-func NewNotifier(projectId int64, projectKey string) *Notifier {
+func NewNotifier(project string, apiKey string, endpoint string, notifications []interface{}) *Notifier {
 	n := &Notifier{
 		Client: httpClient,
 
-		projectId:       projectId,
-		projectKey:      projectKey,
-		createNoticeURL: buildCreateNoticeURL(defaultAirbrakeHost, projectId),
+		project:       project,
+		apiKey:        apiKey,
+		endpoint:      endpoint,
+		notifications: notifications,
+
+		createNoticeURL: buildCreateNoticeURL(endpoint, project),
 
 		filters: []filter{gopathFilter, gitRevisionFilter},
 
@@ -94,8 +99,9 @@ func NewNotifier(projectId int64, projectKey string) *Notifier {
 }
 
 // Sets Airbrake host name. Default is https://airbrake.io.
-func (n *Notifier) SetHost(h string) {
-	n.createNoticeURL = buildCreateNoticeURL(h, n.projectId)
+func (n *Notifier) SetEndpoint(e string) {
+	n.endpoint = e
+	n.createNoticeURL = buildCreateNoticeURL(e, n.project)
 }
 
 // AddFilter adds filter that can modify or ignore notice.
@@ -116,25 +122,31 @@ func (n *Notifier) Notice(err interface{}, req *http.Request, depth int) *Notice
 }
 
 type sendResponse struct {
-	Id string `json:"id"`
+	Data struct {
+		Errors struct {
+			PostCount int `json:"postCount"`
+		} `json:"errors"`
+	} `json:"data"`
 }
 
 // SendNotice sends notice to Airbrake.
-func (n *Notifier) SendNotice(notice *Notice) (string, error) {
+func (n *Notifier) SendNotice(notice *Notice) (int, error) {
 	if n.closed() {
-		return "", errClosed
+		return 0, errClosed
 	}
+
+	notice.Notifications = n.notifications
 
 	for _, fn := range n.filters {
 		notice = fn(notice)
 		if notice == nil {
 			// Notice is ignored.
-			return "", nil
+			return 0, nil
 		}
 	}
 
 	if time.Now().Unix() < atomic.LoadInt64(&n.rateLimitReset) {
-		return "", errIPRateLimited
+		return 0, errIPRateLimited
 	}
 
 	buf := buffers.Get().(*bytes.Buffer)
@@ -142,26 +154,26 @@ func (n *Notifier) SendNotice(notice *Notice) (string, error) {
 
 	buf.Reset()
 	if err := json.NewEncoder(buf).Encode(notice); err != nil {
-		return "", err
+		return 0, err
 	}
 
 	req, err := http.NewRequest("POST", n.createNoticeURL, buf)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+n.projectKey)
+	req.Header.Set("X-Api-Key", n.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := n.Client.Do(req)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	defer resp.Body.Close()
 
 	buf.Reset()
 	_, err = buf.ReadFrom(resp.Body)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
 	switch resp.StatusCode {
@@ -169,25 +181,26 @@ func (n *Notifier) SendNotice(notice *Notice) (string, error) {
 		var sendResp sendResponse
 		err = json.NewDecoder(buf).Decode(&sendResp)
 		if err != nil {
-			return "", err
+			return 0, err
 		}
-		return sendResp.Id, nil
+		return sendResp.Data.Errors.PostCount, nil
 	case http.StatusUnauthorized:
-		return "", errUnauthorized
+		return 0, errUnauthorized
 	case httpStatusTooManyRequests:
 		delayStr := resp.Header.Get("X-RateLimit-Delay")
 		delay, err := strconv.ParseInt(delayStr, 10, 64)
 		if err == nil {
 			atomic.StoreInt64(&n.rateLimitReset, time.Now().Unix()+delay)
 		}
-		return "", errIPRateLimited
+		return 0, errIPRateLimited
 	case httpEnhanceYourCalm:
-		return "", errAccountRateLimited
+		return 0, errAccountRateLimited
 	}
 
 	err = fmt.Errorf("got response status=%q, wanted 201 CREATED", resp.Status)
 	logger.Printf("SendNotice failed reporting notice=%q: %s", notice, err)
-	return "", err
+	logger.Printf("%v", buf.String())
+	return 0, err
 }
 
 // SendNoticeAsync is like SendNotice, but sends notice asynchronously.
@@ -209,7 +222,7 @@ func (n *Notifier) SendNoticeAsync(notice *Notice) {
 	go func() {
 		n.limit <- struct{}{}
 
-		notice.Id, notice.Error = n.SendNotice(notice)
+		_, notice.Error = n.SendNotice(notice)
 		atomic.AddInt32(&n.inFlight, -1)
 		n.wg.Done()
 
@@ -263,8 +276,8 @@ func (n *Notifier) waitTimeout(timeout time.Duration) error {
 	}
 }
 
-func buildCreateNoticeURL(host string, projectId int64) string {
-	return fmt.Sprintf("%s/api/v3/projects/%d/notices", host, projectId)
+func buildCreateNoticeURL(endpoint string, project string) string {
+	return fmt.Sprintf("%s/projects/%s/errors", endpoint, project)
 }
 
 func gopathFilter(notice *Notice) *Notice {
