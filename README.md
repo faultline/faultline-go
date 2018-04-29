@@ -1,4 +1,4 @@
-# faultline-go
+# faultline-go [![Build Status](https://travis-ci.org/faultline/faultline-go.svg?branch=master)](https://travis-ci.org/faultline/faultline-go)
 
 > [faultline](https://github.com/faultline/faultline) exception and error notifier for Go.
 
