@@ -12,18 +12,8 @@ import (
 	"github.com/faultline/faultline-go/faultline"
 )
 
-type Slack struct {
-	Type           string `json:"type"`
-	Endpoint       string `json:"endpoint"`
-	Channel        string `json:"channel"`
-	Username       string `json:"username"`
-	NotifyInterval int    `json:"notifyInterval"`
-	Threshold      int    `json:"threshold"`
-	Timezone       int    `json:"timezone"`
-}
-
 var notifications = []interface{}{
-	Slack{
+	faultline.Slack{
 		Type:           "slack",
 		Endpoint:       "https://hooks.slack.com/services/XXXXXXXXXX/BAC0D0N69/NacHbWgIfklAHH7XBEItGNcs",
 		Channel:        "#random",
