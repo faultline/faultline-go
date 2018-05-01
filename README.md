@@ -24,7 +24,7 @@ var notifications = []interface{}{
 		Username:       "faultline-notify",
 		NotifyInterval: 5,
 		Threshold:      10,
-		Timezone:       "Asia/Tokyo"
+		Timezone:       "Asia/Tokyo",
 	},
 }
 
