@@ -9,7 +9,7 @@ type Slack struct {
 	Username       string `json:"username"`
 	IconEmoji      string `json:"iconEmoji,omitempty"`
 	IconURL        string `json:"iconUrl,omitempty"`
-	Timezone       int    `json:"timezone,omitempty"`
+	Timezone       string `json:"timezone,omitempty"`
 	LinkTemplate   string `json:"linkTemplate,omitempty"`
 }
 
@@ -20,10 +20,10 @@ type GitHub struct {
 	Endpoint       string   `json:"endpoint,omitempty"`
 	UserToken      string   `json:"userToken"`
 	Owner          string   `json:"owner"`
-	Repo           int      `json:"repo"`
+	Repo           string   `json:"repo"`
 	Labels         []string `json:"labels,omitempty"`
 	IfExist        string   `json:"if_exist,omitempty"`
-	Timezone       int      `json:"timezone,omitempty"`
+	Timezone       string   `json:"timezone,omitempty"`
 	LinkTemplate   string   `json:"linkTemplate,omitempty"`
 }
 
@@ -34,9 +34,9 @@ type GitLab struct {
 	Endpoint            string   `json:"endpoint,omitempty"`
 	PersonalAccessToken string   `json:"personalAccessToken"`
 	Owner               string   `json:"owner"`
-	Repo                int      `json:"repo"`
+	Repo                string   `json:"repo"`
 	Labels              []string `json:"labels,omitempty"`
 	IfExist             string   `json:"if_exist,omitempty"`
-	Timezone            int      `json:"timezone,omitempty"`
+	Timezone            string   `json:"timezone,omitempty"`
 	LinkTemplate        string   `json:"linkTemplate,omitempty"`
 }
