@@ -17,12 +17,13 @@ depsdev:
 	go get github.com/motemen/gobump/cmd/gobump
 	go get github.com/Songmu/ghch/cmd/ghch
 
-prerelease:
+prerelease: depsdev
 	$(eval ver = v$(shell gobump show -r faultline/))
 	ghch -w -N ${ver}
 
-release:
-  $(eval ver = v$(shell gobump show -r faultline/))
+release: depsdev
+	$(eval ver = v$(shell gobump show -r faultline/))
 	git tag ${ver}
+	git push --tags
 
 .PHONY: default test deps cover
