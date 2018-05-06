@@ -15,5 +15,14 @@ depsdev:
 	go get github.com/mattn/goveralls
 	go get github.com/golang/lint/golint
 	go get github.com/motemen/gobump/cmd/gobump
+	go get github.com/Songmu/ghch/cmd/ghch
+
+prerelease:
+	$(eval ver = v$(shell gobump show -r faultline/))
+	ghch -w -N ${ver}
+
+release:
+  $(eval ver = v$(shell gobump show -r faultline/))
+	git tag ${ver}
 
 .PHONY: default test deps cover
